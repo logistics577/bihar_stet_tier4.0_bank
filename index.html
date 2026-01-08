@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File Manager System</title>
+<style>
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+        }
+body {
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+min-height: 100vh;
+padding: 10px; /* Reduced padding for mobile */
+        }
+.container {
+max-width: 1400px;
+margin: 0 auto;
+background: white;
+border-radius: 15px;
+box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+overflow: hidden;
+        }
+.navbar {
+display: flex;
+background: #2c3e50;
+flex-wrap: wrap;
+        }
+.nav-btn {
+flex: 1;
+min-width: 100px; /* Smaller min-width for better mobile fit */
+padding: 15px 10px; /* Reduced padding */
+border: none;
+background: #2c3e50;
+color: white;
+font-size: 14px; /* Smaller font on default */
+cursor: pointer;
+transition: all 0.3s;
+border-bottom: 3px solid transparent;
+text-align: center;
+white-space: nowrap;
+        }
+.nav-btn:hover {
+background: #34495e;
+        }
+.nav-btn.active {
+background: #3498db;
+border-bottom: 3px solid #2980b9;
+        }
+.content {
+padding: 20px; /* Reduced for mobile */
+        }
+.section {
+display: none;
+        }
+.section.active {
+display: block;
+animation: fadeIn 0.5s;
+        }
+@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+h1 {
+color: #2c3e50;
+margin-bottom: 20px;
+font-size: 24px; /* Smaller default */
+        }
+.upload-form {
+background: #f8f9fa;
+padding: 20px; /* Reduced */
+border-radius: 10px;
+margin-bottom: 20px;
+        }
+.form-group {
+margin-bottom: 15px; /* Reduced */
+        }
+label {
+display: block;
+margin-bottom: 8px;
+color: #555;
+font-weight: 600;
+        }
+input[type="email"],
+input[type="file"],
+input[type="text"],
+textarea {
+width: 100%;
+padding: 12px;
+border: 2px solid #ddd;
+border-radius: 8px;
+font-size: 14px;
+transition: border 0.3s;
+font-family: inherit;
+        }
+textarea {
+min-height: 150px;
+resize: vertical;
+        }
+input:focus,
+textarea:focus {
+outline: none;
+border-color: #3498db;
+        }
+.btn {
+background: #3498db;
+color: white;
+padding: 10px 20px; /* Slightly reduced */
+border: none;
+border-radius: 8px;
+cursor: pointer;
+font-size: 14px; /* Smaller */
+transition: all 0.3s;
+margin-right: 10px;
+margin-bottom: 10px;
+        }
+.btn:hover {
+background: #2980b9;
+transform: translateY(-2px);
+box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+.btn:disabled {
+background: #95a5a6;
+cursor: not-allowed;
+transform: none;
+        }
+.files-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Smaller cards on mobile */
+gap: 15px; /* Reduced gap */
+margin-top: 20px;
+        }
+.file-card {
+background: white;
+border: 2px solid #ecf0f1;
+border-radius: 10px;
+padding: 15px; /* Reduced */
+transition: all 0.3s;
+        }
+.file-card:hover {
+border-color: #3498db;
+box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+transform: translateY(-5px);
+        }
+.file-icon {
+font-size: 40px; /* Slightly smaller */
+text-align: center;
+margin-bottom: 10px; /* Reduced */
+        }
+.file-name {
+font-weight: bold;
+color: #2c3e50;
+margin-bottom: 10px;
+word-break: break-all;
+font-size: 14px; /* Smaller */
+        }
+.file-info {
+color: #7f8c8d;
+font-size: 12px; /* Smaller */
+margin-bottom: 5px;
+        }
+.file-actions {
+display: flex;
+gap: 5px; /* Reduced */
+margin-top: 10px; /* Reduced */
+flex-wrap: wrap;
+        }
+.btn-small {
+padding: 6px 10px; /* Smaller buttons */
+font-size: 11px; /* Smaller text */
+flex: 1;
+min-width: 50px; /* Smaller */
+margin: 0;
+        }
+.btn-view {
+background: #27ae60;
+        }
+.btn-view:hover {
+background: #229954;
+        }
+.btn-update {
+background: #f39c12;
+        }
+.btn-update:hover {
+background: #d68910;
+        }
+.btn-delete {
+background: #e74c3c;
+        }
+.btn-delete:hover {
+background: #c0392b;
+        }
+.alert {
+padding: 12px; /* Reduced */
+border-radius: 8px;
+margin-bottom: 15px; /* Reduced */
+animation: slideIn 0.3s;
+        }
+@keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+.alert-success {
+background: #d4edda;
+color: #155724;
+border: 1px solid #c3e6cb;
+        }
+.alert-error {
+background: #f8d7da;
+color: #721c24;
+border: 1px solid #f5c6cb;
+        }
+.modal {
+display: none;
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0,0,0,0.8);
+z-index: 1000;
+justify-content: center;
+align-items: center;
+overflow-y: auto;
+        }
+.modal.active {
+display: flex;
+        }
+.modal-content {
+background: white;
+padding: 0;
+border-radius: 0;
+max-width: 100vw;
+width: 100vw;
+max-height: 100vh;
+height: 100vh;
+overflow: hidden;
+animation: none;
+margin: 0;
+position: relative;
+        }
+.modal.maximized .modal-content {
+width: 100vw;
+height: 100vh;
+        }
+.modal-header {
+margin: 0;
+padding: 8px 15px; /* Reduced */
+display: flex;
+justify-content: space-between;
+align-items: center;
+background: rgba(0,0,0,0.1);
+position: sticky;
+top: 0;
+z-index: 10;
+        }
+.modal-header h2 {
+color: #2c3e50;
+margin: 0;
+font-size: 16px; /* Smaller */
+        }
+.close-btn {
+background: #95a5a6;
+margin-left: 5px; /* Reduced */
+padding: 5px 10px; /* Smaller */
+font-size: 12px; /* Smaller */
+        }
+.close-btn:hover {
+background: #7f8c8d;
+        }
+.maximize-btn {
+background: #f39c12;
+        }
+.maximize-btn:hover {
+background: #d68910;
+        }
+.viewer-container {
+width: 100%;
+height: calc(100vh - 40px); /* Adjusted for smaller header */
+background: #f8f9fa;
+padding: 0;
+margin: 0;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: flex-start;
+overflow-y: auto;
+        }
+.viewer-container img {
+max-width: 100%;
+max-height: 100%;
+border-radius: 0;
+box-shadow: none;
+cursor: zoom-in;
+        }
+.viewer-container canvas {
+max-width: 100%;
+border: none;
+border-radius: 0;
+cursor: crosshair;
+display: block;
+margin: 0 auto 10px;
+        }
+.viewer-container iframe {
+width: 100%;
+height: 100%;
+border: none;
+border-radius: 0;
+        }
+.viewer-container pre {
+width: 100%;
+height: 100%;
+overflow-y: auto;
+padding: 15px; /* Reduced */
+background: white;
+margin: 0;
+white-space: pre-wrap;
+word-wrap: break-word;
+font-family: 'Courier New', monospace;
+font-size: 12px; /* Smaller text */
+        }
+.pdf-container {
+width: 100%;
+height: 100%;
+overflow-y: auto;
+padding: 5px; /* Reduced */
+box-sizing: border-box;
+        }
+.pdf-page {
+margin-bottom: 5px; /* Reduced */
+text-align: center;
+        }
+.pdf-page canvas {
+max-width: 100%;
+box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+.paste-area {
+width: 100%;
+min-height: 250px; /* Slightly smaller */
+border: 3px dashed #3498db;
+border-radius: 10px;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+padding: 20px; /* Reduced */
+text-align: center;
+background: #ecf0f1;
+cursor: pointer;
+transition: all 0.3s;
+        }
+.paste-area:hover {
+background: #d5dbdb;
+border-color: #2980b9;
+        }
+.paste-area.dragover {
+background: #d4edda;
+border-color: #28a745;
+        }
+.paste-icon {
+font-size: 48px; /* Smaller */
+margin-bottom: 10px; /* Reduced */
+        }
+.tools-container {
+display: flex;
+gap: 10px;
+margin-bottom: 15px; /* Reduced */
+flex-wrap: wrap;
+        }
+.color-picker {
+padding: 5px;
+border: 2px solid #ddd;
+border-radius: 5px;
+cursor: pointer;
+        }
+.brush-size {
+padding: 8px;
+border: 2px solid #ddd;
+border-radius: 5px;
+        }
+#paste-section {
+position: relative;
+min-height: 500px;
+        }
+#create-content-wrapper {
+position: relative;
+padding-bottom: 80px; /* Space for fixed buttons */
+        }
+.save-actions {
+position: fixed;
+bottom: 20px;
+left: 50%;
+transform: translateX(-50%);
+background: white;
+padding: 15px 30px;
+border-radius: 10px;
+box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+z-index: 100;
+display: none;
+        }
+.save-actions.active {
+display: flex;
+gap: 10px;
+        }
+.filename-input-wrapper {
+position: relative;
+margin-bottom: 20px;
+        }
+.filename-input-wrapper input {
+width: 100%;
+        }
+@media (max-width: 768px) {
+body {
+padding: 5px; /* Even smaller padding */
+            }
+.content {
+padding: 10px; /* Much smaller */
+            }
+h1 {
+font-size: 20px;
+            }
+.nav-btn {
+font-size: 12px;
+padding: 12px 5px;
+min-width: 80px; /* Stack better */
+            }
+.navbar {
+flex-direction: column; /* Stack navbar vertically on very small screens */
+            }
+.btn {
+padding: 8px 15px;
+font-size: 12px;
+            }
+.btn-small {
+padding: 5px 8px;
+font-size: 10px;
+min-width: 40px;
+            }
+.file-card {
+padding: 10px;
+            }
+.file-icon {
+font-size: 32px;
+            }
+.file-name {
+font-size: 12px;
+            }
+.file-info {
+font-size: 10px;
+            }
+.modal-header {
+padding: 5px 10px;
+            }
+.modal-header h2 {
+font-size: 14px;
+            }
+.close-btn {
+padding: 4px 8px;
+font-size: 10px;
+margin-left: 3px;
+            }
+.viewer-container {
+height: calc(100vh - 30px);
+            }
+.paste-area {
+min-height: 200px;
+padding: 15px;
+            }
+.paste-icon {
+font-size: 40px;
+            }
+.tools-container {
+gap: 5px;
+            }
+.save-actions {
+bottom: 10px;
+padding: 10px 15px;
+width: 95%;
+left: 2.5%;
+transform: none;
+flex-direction: column; /* Stack buttons on mobile */
+gap: 5px;
+            }
+.filename-input-wrapper input {
+margin-bottom: 5px;
+            }
+.files-grid {
+grid-template-columns: 1fr;
+gap: 10px;
+            }
+        }
+@media (max-width: 480px) {
+.nav-btn {
+min-width: auto;
+            }
+        }
+.loading {
+text-align: center;
+padding: 30px;
+color: #7f8c8d;
+        }
+.empty-state {
+text-align: center;
+padding: 40px 10px; /* Reduced */
+color: #7f8c8d;
+        }
+.empty-state-icon {
+font-size: 48px; /* Smaller */
+margin-bottom: 15px; /* Reduced */
+opacity: 0.5;
+        }
+.text-editor-container {
+background: white;
+border: 2px solid #ddd;
+border-radius: 8px;
+padding: 12px; /* Reduced */
+margin-bottom: 15px; /* Reduced */
+        }
+.mode-selector {
+display: flex;
+gap: 5px; /* Reduced */
+margin-bottom: 15px; /* Reduced */
+flex-wrap: wrap;
+        }
+.mode-btn {
+padding: 8px 12px; /* Smaller */
+font-size: 12px; /* Smaller */
+            }
+.mode-btn.active {
+background: #3498db;
+color: white;
+        }
+.mode-btn:hover {
+transform: translateY(-1px); /* Smaller hover effect */
+        }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="navbar">
+<button class="nav-btn active" onclick="showSection('home')">🏠 Home</button>
+<button class="nav-btn" onclick="showSection('upload')">📤 Upload Data</button>
+<button class="nav-btn" onclick="showSection('paste')">📋 Paste & Create</button>
+<button class="nav-btn" onclick="showSection('view')">📁 View All Files</button>
+</div>
+<div class="content">
+<!-- Home Section -->
+<div id="home" class="section active">
+<h1>Welcome to File Manager System</h1>
+<p style="color: #7f8c8d; font-size: 14px; line-height: 1.6;">
+                    Advanced file management system with screenshot support, text extraction, and drawing capabilities.
+</p>
+<div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 10px;">
+<h3 style="color: #27ae60; margin-bottom: 10px; font-size: 16px;">📋 Features:</h3>
+<ul style="color: #555; line-height: 1.8; font-size: 14px;">
+<li>✅ Upload any file type (PDF, PNG, Images, Documents)</li>
+<li>✅ View files directly in browser (full screen)</li>
+<li>✅ Paste screenshots directly from clipboard</li>
+<li>✅ Draw and annotate on images</li>
+<li>✅ Create and save text documents</li>
+<li>✅ Admin-only update/delete</li>
+<li>✅ Fully responsive design</li>
+</ul>
+</div>
+</div>
+<!-- Upload Section -->
+<div id="upload" class="section">
+<h1>Upload New File</h1>
+<div id="uploadAlert"></div>
+<div class="upload-form">
+<form id="uploadForm">
+<div class="form-group">
+<label for="uploadFile">Select File *</label>
+<input type="file" id="uploadFile" required>
+</div>
+<button type="submit" class="btn">📤 Upload File</button>
+</form>
+</div>
+</div>
+<!-- Paste & Create Section -->
+<div id="paste" class="section" id="paste-section">
+<h1>Paste Screenshot or Create Content</h1>
+<div id="pasteAlert"></div>
+<div class="mode-selector">
+<button class="mode-btn active" onclick="setMode('paste')">📸 Paste Screenshot</button>
+<button class="mode-btn" onclick="setMode('draw')">✏️ Draw</button>
+<button class="mode-btn" onclick="setMode('text')">📝 Create Text</button>
+</div>
+<!-- Paste Mode -->
+<div id="pasteMode" class="paste-area" tabindex="0">
+<div class="paste-icon">📸</div>
+<h3>Press Ctrl+V to paste screenshot</h3>
+<p style="color: #7f8c8d; margin-top: 10px;">
+                        Take a screenshot anywhere and paste it here!<br>
+                        Or drag and drop an image file
+</p>
+</div>
+<!-- Draw Mode -->
+<div id="drawMode" style="display: none;">
+<div class="tools-container">
+<label>Color: <input type="color" id="drawColor" value="#000000" class="color-picker"></label>
+<label>Size: <input type="range" id="brushSize" min="1" max="20" value="3" class="brush-size"></label>
+<button class="btn" onclick="clearCanvas()">🗑️ Clear</button>
+</div>
+<canvas id="drawCanvas" width="100%" height="400"></canvas> <!-- Responsive canvas -->
+</div>
+<!-- Text Mode -->
+<div id="textMode" style="display: none;" class="create-content-wrapper">
+<div class="form-group">
+<label for="textTitle">Document Title</label>
+<input type="text" id="textTitle" placeholder="My Document">
+</div>
+<div class="form-group">
+<label for="textContent">Content</label>
+<textarea id="textContent" placeholder="Write your content here..."></textarea>
+</div>
+</div>
+<!-- Save Actions (Fixed Bottom) -->
+<div class="save-actions" id="saveActions">
+<input type="text" id="pastedFileName" class="btn" placeholder="Enter filename (e.g., document.txt)" style="margin: 0; flex: 1; background: #f8f9fa; color: #333;">
+<button class="btn" onclick="saveContent()">💾 Save</button>
+<button class="btn close-btn" onclick="resetPaste()">Cancel</button>
+</div>
+</div>
+<!-- View Section -->
+<div id="view" class="section">
+<h1>All Uploaded Files</h1>
+<div id="viewAlert"></div>
+<div id="filesContainer" class="loading">
+                    Loading files...
+</div>
+</div>
+</div>
+</div>
+<!-- View File Modal -->
+<div id="viewModal" class="modal">
+<div class="modal-content">
+<div class="modal-header">
+<h2 id="viewFileName">File Viewer</h2>
+<button class="btn close-btn maximize-btn" onclick="toggleMaximize()">⛶ Maximize</button>
+<button class="btn close-btn" onclick="closeViewModal()">✕ Close</button>
+</div>
+<div class="viewer-container" id="fileViewer">
+                Loading...
+</div>
+</div>
+</div>
+<!-- Update Modal -->
+<div id="updateModal" class="modal">
+<div class="modal-content">
+<div class="modal-header">
+<h2>Update File (Admin Only)</h2>
+</div>
+<form id="updateForm">
+<div class="form-group">
+<label for="updateEmail">Admin Email *</label>
+<input type="email" id="updateEmail" required placeholder="abc@gmail.com">
+</div>
+<div class="form-group">
+<label for="updateFile">Select New File *</label>
+<input type="file" id="updateFile" required>
+</div>
+<input type="hidden" id="updateFileId">
+<button type="submit" class="btn">🔄 Update</button>
+<button type="button" class="btn close-btn" onclick="closeUpdateModal()">Cancel</button>
+</form>
+</div>
+</div>
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal">
+<div class="modal-content">
+<div class="modal-header">
+<h2>Delete File (Admin Only)</h2>
+</div>
+<form id="deleteForm">
+<div class="form-group">
+<label for="deleteEmail">Admin Email *</label>
+<input type="email" id="deleteEmail" required placeholder="abc@gmail.com">
+</div>
+<p style="color: #e74c3c; margin-bottom: 15px;">
+                    ⚠️ This action cannot be undone!
+</p>
+<input type="hidden" id="deleteFileId">
+<button type="submit" class="btn btn-delete">🗑️ Delete</button>
+<button type="button" class="btn close-btn" onclick="closeDeleteModal()">Cancel</button>
+</form>
+</div>
+</div>
+<!-- PDF.js Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+// Set worker source for PDF.js (required)
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let currentMode = 'paste';
+let canvas, ctx, isDrawing = false;
+let currentFileId = null;
+let currentFileName = null;
+let isMaximized = false;
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+setupCanvas();
+setupPasteArea();
+        });
+// Show section
+function showSection(sectionId) {
+document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+document.getElementById(sectionId).classList.add('active');
+event.target.classList.add('active');
+if (sectionId === 'view') {
+loadFiles();
+            }
+        }
+// Set mode
+function setMode(mode) {
+currentMode = mode;
+document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+event.target.classList.add('active');
+document.getElementById('pasteMode').style.display = mode === 'paste' ? 'flex' : 'none';
+document.getElementById('drawMode').style.display = mode === 'draw' ? 'block' : 'none';
+document.getElementById('textMode').style.display = mode === 'text' ? 'block' : 'none';
+// Show save actions for all creation modes
+const saveActions = document.getElementById('saveActions');
+if (mode === 'paste' || mode === 'draw' || mode === 'text') {
+    saveActions.classList.add('active');
+    // Sync filename for text mode
+    if (mode === 'text') {
+        const title = document.getElementById('textTitle').value || 'document';
+        document.getElementById('pastedFileName').value = title.endsWith('.txt') ? title : title + '.txt';
+    } else if (mode === 'paste') {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        document.getElementById('pastedFileName').value = `screenshot-${timestamp}.png`;
+    } else {
+        document.getElementById('pastedFileName').value = `drawing-${Date.now()}.png`;
+    }
+    // Hide image in text mode
+    document.getElementById('pastedImage').style.display = mode === 'text' ? 'none' : 'block';
+} else {
+    saveActions.classList.remove('active');
+}
+        }
+// Setup canvas for drawing
+function setupCanvas() {
+canvas = document.getElementById('drawCanvas');
+ctx = canvas.getContext('2d');
+ctx.lineCap = 'round';
+ctx.lineJoin = 'round';
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', stopDrawing);
+canvas.addEventListener('mouseout', stopDrawing);
+// Touch support
+canvas.addEventListener('touchstart', handleTouch);
+canvas.addEventListener('touchmove', handleTouch);
+canvas.addEventListener('touchend', stopDrawing);
+// Resize canvas on window resize
+window.addEventListener('resize', () => {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = 400; // Fixed height for responsiveness
+});
+        }
+function startDrawing(e) {
+isDrawing = true;
+const rect = canvas.getBoundingClientRect();
+ctx.beginPath();
+ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+function draw(e) {
+if (!isDrawing) return;
+const rect = canvas.getBoundingClientRect();
+ctx.strokeStyle = document.getElementById('drawColor').value;
+ctx.lineWidth = document.getElementById('brushSize').value;
+ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+ctx.stroke();
+        }
+function stopDrawing() {
+isDrawing = false;
+        }
+function handleTouch(e) {
+e.preventDefault();
+const touch = e.touches[0];
+const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+clientX: touch.clientX,
+clientY: touch.clientY
+            });
+canvas.dispatchEvent(mouseEvent);
+        }
+function clearCanvas() {
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+// Setup paste area
+function setupPasteArea() {
+const pasteArea = document.getElementById('pasteMode');
+// Paste event
+pasteArea.addEventListener('paste', handlePaste);
+document.addEventListener('paste', (e) => {
+if (currentMode === 'paste' && document.getElementById('paste').classList.contains('active')) {
+handlePaste(e);
+                }
+            });
+// Drag and drop
+pasteArea.addEventListener('dragover', (e) => {
+e.preventDefault();
+pasteArea.classList.add('dragover');
+            });
+pasteArea.addEventListener('dragleave', () => {
+pasteArea.classList.remove('dragover');
+            });
+pasteArea.addEventListener('drop', (e) => {
+e.preventDefault();
+pasteArea.classList.remove('dragover');
+const file = e.dataTransfer.files[0];
+if (file && file.type.startsWith('image/')) {
+displayPastedImage(file);
+                }
+            });
+        }
+function handlePaste(e) {
+const items = e.clipboardData.items;
+for (let item of items) {
+if (item.type.indexOf('image') !== -1) {
+const blob = item.getAsFile();
+displayPastedImage(blob);
+break;
+                }
+            }
+        }
+function displayPastedImage(blob) {
+const reader = new FileReader();
+reader.onload = (e) => {
+document.getElementById('pastedImage').src = e.target.result;
+document.getElementById('pastedImage').style.display = 'block';
+document.getElementById('pasteMode').style.display = 'none';
+            };
+reader.readAsDataURL(blob);
+// Store blob for saving
+window.currentBlob = blob;
+        }
+async function saveContent() {
+let file;
+let filename = document.getElementById('pastedFileName').value || 'file';
+if (currentMode === 'paste') {
+if (!window.currentBlob) {
+showAlert('pasteAlert', '❌ No image to save', 'error');
+return;
+                }
+file = new File([window.currentBlob], filename, { type: 'image/png' });
+            } else if (currentMode === 'draw') {
+const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+if (!filename.endsWith('.png')) filename += '.png';
+file = new File([blob], filename, { type: 'image/png' });
+            } else if (currentMode === 'text') {
+const title = document.getElementById('textTitle').value || 'document';
+const content = document.getElementById('textContent').value;
+if (!content.trim()) {
+showAlert('pasteAlert', '❌ Please enter some content', 'error');
+return;
+                }
+const blob = new Blob([content], { type: 'text/plain' });
+file = new File([blob], title.endsWith('.txt') ? title : title + '.txt', { type: 'text/plain' });
+            }
+const formData = new FormData();
+formData.append('file', file);
+try {
+const response = await fetch('/api/upload', {
+method: 'POST',
+body: formData
+                });
+const data = await response.json();
+if (response.ok) {
+showAlert('pasteAlert', '✅ ' + data.message, 'success');
+resetPaste();
+// Refresh file list to show new document
+loadFiles();
+                } else {
+showAlert('pasteAlert', '❌ ' + data.detail, 'error');
+                }
+            } catch (error) {
+showAlert('pasteAlert', '❌ Error saving file', 'error');
+            }
+        }
+function resetPaste() {
+document.getElementById('saveActions').classList.remove('active');
+document.getElementById('pasteMode').style.display = 'flex';
+document.getElementById('drawMode').style.display = 'none';
+document.getElementById('textMode').style.display = 'none';
+document.getElementById('pastedImage').src = '';
+document.getElementById('pastedFileName').value = '';
+document.getElementById('textTitle').value = '';
+document.getElementById('textContent').value = '';
+clearCanvas();
+window.currentBlob = null;
+        }
+// Show alert
+function showAlert(containerId, message, type) {
+const container = document.getElementById(containerId);
+container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+setTimeout(() => {
+container.innerHTML = '';
+            }, 5000);
+        }
+// Upload form
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+e.preventDefault();
+const fileInput = document.getElementById('uploadFile');
+const file = fileInput.files[0];
+if (!file) {
+showAlert('uploadAlert', '❌ Please select a file', 'error');
+return;
+            }
+const formData = new FormData();
+formData.append('file', file);
+try {
+const response = await fetch('/api/upload', {
+method: 'POST',
+body: formData
+                });
+const data = await response.json();
+if (response.ok) {
+showAlert('uploadAlert', '✅ ' + data.message, 'success');
+document.getElementById('uploadForm').reset();
+// Refresh file list after upload
+loadFiles();
+                } else {
+showAlert('uploadAlert', '❌ ' + data.detail, 'error');
+                }
+            } catch (error) {
+showAlert('uploadAlert', '❌ Error uploading file: ' + error.message, 'error');
+            }
+        });
+// Load files
+async function loadFiles() {
+const container = document.getElementById('filesContainer');
+container.innerHTML = '<div class="loading">Loading files...</div>';
+try {
+const response = await fetch('/api/files');
+const data = await response.json();
+if (response.ok && data.files && data.files.length > 0) {
+container.innerHTML = '<div class="files-grid">' +
+data.files.map(file => createFileCard(file)).join('') +
+'</div>';
+                } else {
+container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📁</div>
+                            <h3>No files uploaded yet</h3>
+                            <p>Upload your first file to get started!</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+container.innerHTML = '<div class="alert alert-error">❌ Error loading files</div>';
+            }
+        }
+// Create file card
+function createFileCard(file) {
+const icon = getFileIcon(file.filename);
+const date = new Date(file.uploaded_at).toLocaleString();
+return `
+                <div class="file-card">
+                    <div class="file-icon">${icon}</div>
+                    <div class="file-name">${file.filename}</div>
+                    <div class="file-info">📅 ${date}</div>
+                    <div class="file-info">💾 ${formatFileSize(file.size)}</div>
+                    <div class="file-actions">
+                        <button class="btn btn-small btn-view" onclick="viewFile('${file.id}', '${file.filename}')">👁️ View</button>
+                        <button class="btn btn-small btn-update" onclick="openUpdateModal('${file.id}')">🔄 Update</button>
+                        <button class="btn btn-small btn-delete" onclick="openDeleteModal('${file.id}')">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+        }
+// Get file icon
+function getFileIcon(filename) {
+const ext = filename.split('.').pop().toLowerCase();
+const icons = {
+'pdf': '📄',
+'doc': '📝', 'docx': '📝',
+'xls': '📊', 'xlsx': '📊',
+'ppt': '📽️', 'pptx': '📽️',
+'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'bmp': '🖼️',
+'mp4': '🎬', 'avi': '🎬', 'mov': '🎬',
+'mp3': '🎵', 'wav': '🎵',
+'zip': '📦', 'rar': '📦',
+'txt': '📃',
+'html': '🌐', 'css': '🎨', 'js': '⚙️'
+            };
+return icons[ext] || '📄';
+        }
+// Format file size
+function formatFileSize(bytes) {
+if (bytes === 0) return '0 Bytes';
+const k = 1024;
+const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+const i = Math.floor(Math.log(bytes) / Math.log(k));
+return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+// View file
+async function viewFile(fileId, filename) {
+currentFileId = fileId;
+currentFileName = filename;
+isMaximized = false; // Reset to default
+document.getElementById('viewModal').classList.remove('maximized');
+document.getElementById('viewModal').classList.add('active');
+document.getElementById('viewFileName').textContent = filename;
+const viewer = document.getElementById('fileViewer');
+viewer.innerHTML = '<div class="loading">Loading file...</div>';
+try {
+const ext = filename.split('.').pop().toLowerCase();
+const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+const url = `/api/files/${fileId}/download`;
+const response = await fetch(url);
+if (!response.ok) throw new Error('Failed to fetch file');
+const blob = await response.blob();
+const blobUrl = URL.createObjectURL(blob);
+if (imageExts.includes(ext)) {
+const img = document.createElement('img');
+img.src = blobUrl;
+img.alt = filename;
+img.onclick = function() {
+this.style.transform = this.style.transform === 'scale(2)' ? 'scale(1)' : 'scale(2)';
+this.style.cursor = this.style.transform === 'scale(2)' ? 'zoom-out' : 'zoom-in';
+};
+viewer.innerHTML = '';
+viewer.appendChild(img);
+} else if (ext === 'pdf') {
+await renderPDF(blobUrl, viewer);
+} else if (ext === 'txt' || ext === 'log' || ext === 'md') {
+const text = await blob.text();
+viewer.innerHTML = `<pre>${escapeHtml(text)}</pre>`;
+} else if (ext === 'html' || ext === 'htm') {
+const iframe = document.createElement('iframe');
+iframe.src = blobUrl;
+iframe.style.width = '100%';
+iframe.style.height = '100%';
+iframe.style.border = 'none';
+iframe.style.borderRadius = '0';
+viewer.innerHTML = '';
+viewer.appendChild(iframe);
+} else {
+viewer.innerHTML = `
+                        <div style="text-align: center; padding: 30px;">
+                            <div style="font-size: 48px; margin-bottom: 15px;">📄</div>
+                            <p style="font-size: 16px; margin-bottom: 15px;">${filename}</p>
+                            <p style="color: #7f8c8d;">Preview not available for this file type.</p>
+                        </div>
+                    `;
+}
+} catch (error) {
+viewer.innerHTML = '<div class="alert alert-error" style="text-align: center;">❌ Error loading file</div>';
+}
+        }
+async function renderPDF(blobUrl, viewer) {
+try {
+const loadingTask = pdfjsLib.getDocument(blobUrl);
+const pdf = await loadingTask.promise;
+viewer.innerHTML = ''; // Clear loading
+const container = document.createElement('div');
+container.className = 'pdf-container';
+viewer.appendChild(container);
+for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+const page = await pdf.getPage(pageNum);
+const scale = window.innerWidth < 768 ? 1.0 : 1.3; // Adjusted for mobile
+const viewport = page.getViewport({ scale });
+const pageDiv = document.createElement('div');
+pageDiv.className = 'pdf-page';
+const canvas = document.createElement('canvas');
+const context = canvas.getContext('2d');
+canvas.height = viewport.height;
+canvas.width = viewport.width;
+// Add page label
+const label = document.createElement('div');
+label.style.textAlign = 'center';
+label.style.fontSize = '10px'; /* Smaller */
+label.style.color = '#666';
+label.style.marginBottom = '3px';
+label.textContent = `Page ${pageNum}`;
+pageDiv.appendChild(label);
+pageDiv.appendChild(canvas);
+container.appendChild(pageDiv);
+// Render page
+await page.render({
+canvasContext: context,
+viewport: viewport
+}).promise;
+}
+} catch (error) {
+viewer.innerHTML = '<div class="alert alert-error" style="text-align: center;">❌ Error rendering PDF</div>';
+console.error('PDF render error:', error);
+}
+}
+function escapeHtml(text) {
+const div = document.createElement('div');
+div.textContent = text;
+return div.innerHTML;
+        }
+function toggleMaximize() {
+isMaximized = !isMaximized;
+const modal = document.getElementById('viewModal');
+if (isMaximized) {
+modal.classList.add('maximized');
+document.querySelector('.maximize-btn').textContent = '🔽 Restore';
+} else {
+modal.classList.remove('maximized');
+document.querySelector('.maximize-btn').textContent = '⛶ Maximize';
+}
+}
+function closeViewModal() {
+document.getElementById('viewModal').classList.remove('active', 'maximized');
+if (currentFileId) {
+URL.revokeObjectURL(`/api/files/${currentFileId}/download`); // Cleanup blob URLs if any
+}
+currentFileId = null;
+currentFileName = null;
+isMaximized = false;
+document.querySelector('.maximize-btn').textContent = '⛶ Maximize';
+        }
+// Update modal
+function openUpdateModal(fileId) {
+document.getElementById('updateFileId').value = fileId;
+document.getElementById('updateModal').classList.add('active');
+        }
+function closeUpdateModal() {
+document.getElementById('updateModal').classList.remove('active');
+document.getElementById('updateForm').reset();
+        }
+document.getElementById('updateForm').addEventListener('submit', async (e) => {
+e.preventDefault();
+const fileId = document.getElementById('updateFileId').value;
+const email = document.getElementById('updateEmail').value;
+const file = document.getElementById('updateFile').files[0];
+const formData = new FormData();
+formData.append('file', file);
+formData.append('email', email);
+try {
+const response = await fetch(`/api/files/${fileId}/update`, {
+method: 'PUT',
+body: formData
+                });
+const data = await response.json();
+if (response.ok) {
+showAlert('viewAlert', '✅ ' + data.message, 'success');
+closeUpdateModal();
+loadFiles();
+                } else {
+showAlert('viewAlert', '❌ ' + data.detail, 'error');
+closeUpdateModal();
+                }
+            } catch (error) {
+showAlert('viewAlert', '❌ Error updating file', 'error');
+closeUpdateModal();
+            }
+        });
+// Delete modal
+function openDeleteModal(fileId) {
+document.getElementById('deleteFileId').value = fileId;
+document.getElementById('deleteModal').classList.add('active');
+        }
+function closeDeleteModal() {
+document.getElementById('deleteModal').classList.remove('active');
+document.getElementById('deleteForm').reset();
+        }
+document.getElementById('deleteForm').addEventListener('submit', async (e) => {
+e.preventDefault();
+const fileId = document.getElementById('deleteFileId').value;
+const email = document.getElementById('deleteEmail').value;
+try {
+const response = await fetch(`/api/files/${fileId}/delete?email=${encodeURIComponent(email)}`, {
+method: 'DELETE'
+                });
+const data = await response.json();
+if (response.ok) {
+showAlert('viewAlert', '✅ ' + data.message, 'success');
+closeDeleteModal();
+loadFiles();
+                } else {
+showAlert('viewAlert', '❌ ' + data.detail, 'error');
+closeDeleteModal();
+                }
+            } catch (error) {
+showAlert('viewAlert', '❌ Error deleting file', 'error');
+closeDeleteModal();
+            }
+        });
+// Close modals on background click
+document.querySelectorAll('.modal').forEach(modal => {
+modal.addEventListener('click', (e) => {
+if (e.target === modal) {
+modal.classList.remove('active');
+                }
+            });
+        });
+</script>
+</body>
+</html>
