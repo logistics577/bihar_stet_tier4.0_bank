@@ -613,7 +613,6 @@
 #         logger.critical(f"Fatal error: {e}", exc_info=True)
 #         sys.exit(1)
 
-
 import aiohttp.web as web
 import asyncio
 import os
@@ -911,14 +910,36 @@ async def delete_file(request):
     except (ValueError, KeyError):
         return json_error("Invalid file ID", 400)
     
+    # FIXED: Try to get email from multiple sources
+    email = None
+    
+    # 1. Try query params first
     email = request.query.get('email', '').strip()
+    
+    # 2. If not in query, try JSON body
+    if not email:
+        try:
+            data = await request.json()
+            email = data.get('email', '').strip()
+        except:
+            pass
+    
+    # 3. If not in JSON, try form data
+    if not email:
+        try:
+            post_data = await request.post()
+            email = post_data.get('email', '').strip()
+        except:
+            pass
+    
+    logger.info(f"Delete request for file {file_id} with email: {email}")
     
     if not email:
         return json_error("Email is required for deletion", 400)
     
     if email != ADMIN_EMAIL:
         log_operation("DELETE", file_id, user_email=email, success=False, error_message="Unauthorized - not admin email")
-        return json_error(f"Access denied. Only admin can delete files.", 403)
+        return json_error(f"Access denied. Only admin ({ADMIN_EMAIL}) can delete files.", 403)
     
     try:
         res = await run_supabase_sync(
@@ -931,7 +952,7 @@ async def delete_file(request):
         )
         
         if not res.data:
-            raise web.HTTPNotFound()
+            return json_error("File not found or already deleted", 404)
         
         file = res.data
         
@@ -953,7 +974,7 @@ async def delete_file(request):
     except web.HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Delete failed: {e}")
+        logger.error(f"Delete failed: {e}", exc_info=True)
         log_operation("DELETE", file_id, success=False, error_message=str(e))
         return json_error(f"Failed to delete file: {str(e)}", 500)
 
@@ -1132,7 +1153,12 @@ async def get_urls(request):
         raise
 
 async def url_redirect(request):
-    url_id = int(request.match_info['url_id'])
+    """Redirect to the saved URL - this is the endpoint that should redirect"""
+    try:
+        url_id = int(request.match_info['url_id'])
+    except (ValueError, KeyError):
+        return web.Response(text="Invalid URL ID", status=400)
+    
     try:
         res = await run_supabase_sync(
             supabase.table('urls')
@@ -1141,16 +1167,27 @@ async def url_redirect(request):
             .single()
             .execute
         )
-        if not res.data:
-            raise web.HTTPNotFound()
-        raise web.HTTPFound(location=res.data["url"])
-    except web.HTTPException:
-        raise
-    except ValueError:
-        raise web.HTTPBadRequest(text="Invalid URL ID")
+        
+        if not res.data or not res.data.get('url'):
+            return web.Response(text="URL not found", status=404)
+        
+        target_url = res.data["url"]
+        
+        # Make sure URL has a scheme (http:// or https://)
+        if not target_url.startswith(('http://', 'https://')):
+            target_url = 'https://' + target_url
+        
+        logger.info(f"Redirecting URL ID {url_id} to {target_url}")
+        
+        # Return a proper redirect response
+        return web.Response(
+            status=302,
+            headers={'Location': target_url}
+        )
+        
     except Exception as e:
-        logger.error(f"URL redirect error: {e}")
-        raise
+        logger.error(f"URL redirect error: {e}", exc_info=True)
+        return web.Response(text=f"Redirect failed: {str(e)}", status=500)
 
 async def delete_url(request):
     try:
@@ -1158,14 +1195,36 @@ async def delete_url(request):
     except (ValueError, KeyError):
         return json_error("Invalid URL ID", 400)
     
+    # FIXED: Try to get email from multiple sources
+    email = None
+    
+    # 1. Try query params first
     email = request.query.get('email', '').strip()
+    
+    # 2. If not in query, try JSON body
+    if not email:
+        try:
+            data = await request.json()
+            email = data.get('email', '').strip()
+        except:
+            pass
+    
+    # 3. If not in JSON, try form data
+    if not email:
+        try:
+            post_data = await request.post()
+            email = post_data.get('email', '').strip()
+        except:
+            pass
+    
+    logger.info(f"Delete URL request for ID {url_id} with email: {email}")
     
     if not email:
         return json_error("Email is required for deletion", 400)
     
     if email != ADMIN_EMAIL:
         logger.warning(f"Unauthorized URL delete attempt by {email} for URL ID {url_id}")
-        return json_error(f"Access denied. Only admin can delete URLs.", 403)
+        return json_error(f"Access denied. Only admin ({ADMIN_EMAIL}) can delete URLs.", 403)
     
     try:
         res = await run_supabase_sync(
@@ -1198,7 +1257,7 @@ async def delete_url(request):
     except web.HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Delete URL failed: {e}")
+        logger.error(f"Delete URL failed: {e}", exc_info=True)
         return json_error(f"Failed to delete URL: {str(e)}", 500)
 
 # ────────────────────────────────────────────────
@@ -1216,6 +1275,7 @@ def create_app():
     app.router.add_post('/api/save-url', save_url)
     app.router.add_get('/api/urls', get_urls)
     app.router.add_delete('/api/urls/{url_id}/delete', delete_url)
+    # This is the redirect endpoint - when visited, it redirects to the saved URL
     app.router.add_get('/api/url/{url_id}', url_redirect)
     logger.info("All routes registered:")
     for r in app.router.routes():
