@@ -87,6 +87,7 @@ font-weight: 600;
 input[type="email"],
 input[type="file"],
 input[type="text"],
+input[type="url"],
 textarea {
 width: 100%;
 padding: 12px;
@@ -412,6 +413,36 @@ margin-bottom: 20px;
 .filename-input-wrapper input {
 width: 100%;
         }
+.urls-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+gap: 15px;
+margin-top: 20px;
+}
+.url-card {
+background: white;
+border: 2px solid #ecf0f1;
+border-radius: 10px;
+padding: 15px;
+transition: all 0.3s;
+}
+.url-card:hover {
+border-color: #3498db;
+box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+transform: translateY(-5px);
+}
+.url-number {
+font-size: 18px;
+font-weight: bold;
+color: #3498db;
+margin-bottom: 10px;
+}
+.url-link {
+color: #7f8c8d;
+font-size: 12px;
+word-break: break-all;
+margin-bottom: 10px;
+}
 @media (max-width: 768px) {
 body {
 padding: 5px; /* Even smaller padding */
@@ -491,6 +522,10 @@ margin-bottom: 5px;
 grid-template-columns: 1fr;
 gap: 10px;
             }
+.urls-grid {
+grid-template-columns: 1fr;
+gap: 10px;
+}
         }
 @media (max-width: 480px) {
 .nav-btn {
@@ -536,6 +571,49 @@ color: white;
 .mode-btn:hover {
 transform: translateY(-1px); /* Smaller hover effect */
         }
+.urls-section {
+padding: 20px;
+}
+.url-input-form {
+background: #f8f9fa;
+padding: 20px;
+border-radius: 10px;
+margin-bottom: 20px;
+display: flex;
+gap: 10px;
+flex-wrap: wrap;
+}
+.url-input-form input {
+flex: 1;
+min-width: 200px;
+}
+.urls-container {
+margin-top: 20px;
+}
+.extracted-urls {
+margin-top: 20px;
+padding: 15px;
+background: #f8f9fa;
+border-radius: 8px;
+}
+.extracted-urls h4 {
+margin-bottom: 10px;
+color: #2c3e50;
+}
+.extracted-urls ol {
+margin: 10px 0;
+padding-left: 20px;
+}
+.extracted-urls li {
+margin-bottom: 5px;
+}
+.extracted-urls a {
+color: #3498db;
+text-decoration: none;
+}
+.extracted-urls a:hover {
+text-decoration: underline;
+}
 </style>
 </head>
 <body>
@@ -545,6 +623,7 @@ transform: translateY(-1px); /* Smaller hover effect */
 <button class="nav-btn" onclick="showSection('upload')">📤 Upload Data</button>
 <button class="nav-btn" onclick="showSection('paste')">📋 Paste & Create</button>
 <button class="nav-btn" onclick="showSection('view')">📁 View All Files</button>
+<button class="nav-btn" onclick="showSection('urls')">🔗 Saved URLs</button>
 </div>
 <div class="content">
 <!-- Home Section -->
@@ -563,6 +642,8 @@ transform: translateY(-1px); /* Smaller hover effect */
 <li>✅ Create and save text documents</li>
 <li>✅ Admin-only update/delete</li>
 <li>✅ Fully responsive design</li>
+<li>✅ Extract and list URLs from text documents with numbering</li>
+<li>✅ Save and manage URLs separately</li>
 </ul>
 </div>
 </div>
@@ -597,6 +678,7 @@ transform: translateY(-1px); /* Smaller hover effect */
                         Take a screenshot anywhere and paste it here!<br>
                         Or drag and drop an image file
 </p>
+<img id="pastedImage" style="display: none; max-width: 100%; margin-top: 20px; border-radius: 8px;">
 </div>
 <!-- Draw Mode -->
 <div id="drawMode" style="display: none;">
@@ -633,8 +715,53 @@ transform: translateY(-1px); /* Smaller hover effect */
                     Loading files...
 </div>
 </div>
+<!-- Saved URLs Section -->
+<div id="urls" class="section urls-section">
+<h1>Saved URLs</h1>
+<div id="urlsAlert"></div>
+<div class="url-input-form">
+<div class="form-group" style="flex: 1; min-width: 200px;">
+<label for="urlInput">Enter URL</label>
+<input type="url" id="urlInput" placeholder="https://example.com" required>
+</div>
+<div class="form-group" style="flex: 1; min-width: 150px;">
+<label for="urlTitle">Title (Optional)</label>
+<input type="text" id="urlTitle" placeholder="Page Title">
+</div>
+<button class="btn" onclick="saveUrl()">🔗 Save URL</button>
+</div>
+<div id="urlsContainer" class="urls-container loading">
+Loading saved URLs...
 </div>
 </div>
+</div>
+</div>
+
+
+<!-- Delete URL Modal -->
+<div id="deleteUrlModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Delete URL (Admin Only)</h2>
+        </div>
+        <form id="deleteUrlForm">
+            <div class="form-group">
+                <label for="deleteUrlEmail">Admin Email *</label>
+                <input type="email" id="deleteUrlEmail" required placeholder="rohitkumarsoni199977777@gmail.com">
+            </div>
+            <p style="color: #e74c3c; margin-bottom: 15px;">
+                ⚠️ Deleting URL: <strong id="deleteUrlTitle"></strong>
+            </p>
+            <input type="hidden" id="deleteUrlId">
+            <button type="submit" class="btn btn-delete">🗑️ Delete URL</button>
+            <button type="button" class="btn close-btn" onclick="closeDeleteUrlModal()">Cancel</button>
+        </form>
+    </div>
+</div>
+
+
+
+
 <!-- View File Modal -->
 <div id="viewModal" class="modal">
 <div class="modal-content">
@@ -712,8 +839,12 @@ document.getElementById(sectionId).classList.add('active');
 event.target.classList.add('active');
 if (sectionId === 'view') {
 loadFiles();
+            } else if (sectionId === 'urls') {
+loadUrls();
             }
         }
+
+
 // Set mode
 function setMode(mode) {
 currentMode = mode;
@@ -725,21 +856,21 @@ document.getElementById('textMode').style.display = mode === 'text' ? 'block' : 
 // Show save actions for all creation modes
 const saveActions = document.getElementById('saveActions');
 if (mode === 'paste' || mode === 'draw' || mode === 'text') {
-    saveActions.classList.add('active');
-    // Sync filename for text mode
-    if (mode === 'text') {
-        const title = document.getElementById('textTitle').value || 'document';
-        document.getElementById('pastedFileName').value = title.endsWith('.txt') ? title : title + '.txt';
+saveActions.classList.add('active');
+// Sync filename for text mode
+if (mode === 'text') {
+const title = document.getElementById('textTitle').value || 'document';
+document.getElementById('pastedFileName').value = title.endsWith('.txt') ? title : title + '.txt';
     } else if (mode === 'paste') {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-        document.getElementById('pastedFileName').value = `screenshot-${timestamp}.png`;
+const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+document.getElementById('pastedFileName').value = `screenshot-${timestamp}.png`;
     } else {
-        document.getElementById('pastedFileName').value = `drawing-${Date.now()}.png`;
+document.getElementById('pastedFileName').value = `drawing-${Date.now()}.png`;
     }
-    // Hide image in text mode
-    document.getElementById('pastedImage').style.display = mode === 'text' ? 'none' : 'block';
+// Hide image in text mode
+document.getElementById('pastedImage').style.display = mode === 'text' ? 'none' : 'block';
 } else {
-    saveActions.classList.remove('active');
+saveActions.classList.remove('active');
 }
         }
 // Setup canvas for drawing
@@ -758,8 +889,8 @@ canvas.addEventListener('touchmove', handleTouch);
 canvas.addEventListener('touchend', stopDrawing);
 // Resize canvas on window resize
 window.addEventListener('resize', () => {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = 400; // Fixed height for responsiveness
+canvas.width = canvas.offsetWidth;
+canvas.height = 400; // Fixed height for responsiveness
 });
         }
 function startDrawing(e) {
@@ -876,7 +1007,7 @@ resetPaste();
 // Refresh file list to show new document
 loadFiles();
                 } else {
-showAlert('pasteAlert', '❌ ' + data.detail, 'error');
+showAlert('pasteAlert', '❌ ' + data.message, 'error');
                 }
             } catch (error) {
 showAlert('pasteAlert', '❌ Error saving file', 'error');
@@ -888,6 +1019,7 @@ document.getElementById('pasteMode').style.display = 'flex';
 document.getElementById('drawMode').style.display = 'none';
 document.getElementById('textMode').style.display = 'none';
 document.getElementById('pastedImage').src = '';
+document.getElementById('pastedImage').style.display = 'none';
 document.getElementById('pastedFileName').value = '';
 document.getElementById('textTitle').value = '';
 document.getElementById('textContent').value = '';
@@ -925,7 +1057,7 @@ document.getElementById('uploadForm').reset();
 // Refresh file list after upload
 loadFiles();
                 } else {
-showAlert('uploadAlert', '❌ ' + data.detail, 'error');
+showAlert('uploadAlert', '❌ ' + data.message, 'error');
                 }
             } catch (error) {
 showAlert('uploadAlert', '❌ Error uploading file: ' + error.message, 'error');
@@ -986,7 +1118,8 @@ const icons = {
 'mp3': '🎵', 'wav': '🎵',
 'zip': '📦', 'rar': '📦',
 'txt': '📃',
-'html': '🌐', 'css': '🎨', 'js': '⚙️'
+'html': '🌐', 'css': '🎨', 'js': '⚙️',
+'url': '🔗'
             };
 return icons[ext] || '📄';
         }
@@ -997,6 +1130,15 @@ const k = 1024;
 const sizes = ['Bytes', 'KB', 'MB', 'GB'];
 const i = Math.floor(Math.log(bytes) / Math.log(k));
 return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+// Extract URLs from text
+function extractUrls(text) {
+const urlRegex = /(https?:\/\/[^\s]+)/g;
+let match, urls = [];
+while ((match = urlRegex.exec(text)) !== null) {
+urls.push(match[1]);
+}
+return [...new Set(urls)]; // Remove duplicates
         }
 // View file
 async function viewFile(fileId, filename) {
@@ -1030,7 +1172,20 @@ viewer.appendChild(img);
 await renderPDF(blobUrl, viewer);
 } else if (ext === 'txt' || ext === 'log' || ext === 'md') {
 const text = await blob.text();
-viewer.innerHTML = `<pre>${escapeHtml(text)}</pre>`;
+const escaped = escapeHtml(text);
+const urls = extractUrls(text);
+let urlList = '';
+if (urls.length > 0) {
+urlList = `
+<div class="extracted-urls">
+<h4>Extracted URLs (Numbered):</h4>
+<ol>
+${urls.map((url, index) => `<li><a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></li>`).join('')}
+</ol>
+</div>
+`;
+}
+viewer.innerHTML = `<pre>${escaped}</pre>${urlList}`;
 } else if (ext === 'html' || ext === 'htm') {
 const iframe = document.createElement('iframe');
 iframe.src = blobUrl;
@@ -1040,6 +1195,16 @@ iframe.style.border = 'none';
 iframe.style.borderRadius = '0';
 viewer.innerHTML = '';
 viewer.appendChild(iframe);
+} else if (ext === 'url') {
+const urlContent = await blob.text();
+const actualUrl = urlContent.trim();
+viewer.innerHTML = `
+<div style="text-align: center; padding: 30px;">
+<h3>${filename}</h3>
+<p style="font-size: 16px; margin-bottom: 15px;">URL: <a href="${actualUrl}" target="_blank" rel="noopener noreferrer">${actualUrl}</a></p>
+<button class="btn" onclick="window.open('${actualUrl}', '_blank')">🌐 Go to Page</button>
+</div>
+`;
 } else {
 viewer.innerHTML = `
                         <div style="text-align: center; padding: 30px;">
@@ -1146,7 +1311,7 @@ showAlert('viewAlert', '✅ ' + data.message, 'success');
 closeUpdateModal();
 loadFiles();
                 } else {
-showAlert('viewAlert', '❌ ' + data.detail, 'error');
+showAlert('viewAlert', '❌ ' + data.message, 'error');
 closeUpdateModal();
                 }
             } catch (error) {
@@ -1177,7 +1342,7 @@ showAlert('viewAlert', '✅ ' + data.message, 'success');
 closeDeleteModal();
 loadFiles();
                 } else {
-showAlert('viewAlert', '❌ ' + data.detail, 'error');
+showAlert('viewAlert', '❌ ' + data.message, 'error');
 closeDeleteModal();
                 }
             } catch (error) {
@@ -1185,6 +1350,132 @@ showAlert('viewAlert', '❌ Error deleting file', 'error');
 closeDeleteModal();
             }
         });
+// Saved URLs functions
+async function saveUrl() {
+const url = document.getElementById('urlInput').value.trim();
+const title = document.getElementById('urlTitle').value.trim() || url;
+if (!url) {
+showAlert('urlsAlert', '❌ Please enter a URL', 'error');
+return;
+}
+const formData = new FormData();
+formData.append('url', url);
+formData.append('title', title);
+try {
+const response = await fetch('/api/save-url', {
+method: 'POST',
+body: formData
+});
+const data = await response.json();
+if (response.ok) {
+showAlert('urlsAlert', '✅ URL saved: ' + data.message, 'success');
+document.getElementById('urlInput').value = '';
+document.getElementById('urlTitle').value = '';
+loadUrls();
+} else {
+showAlert('urlsAlert', '❌ ' + data.message, 'error');
+}
+} catch (error) {
+showAlert('urlsAlert', '❌ Error saving URL: ' + error.message, 'error');
+}
+}
+async function loadUrls() {
+const container = document.getElementById('urlsContainer');
+container.innerHTML = '<div class="loading">Loading URLs...</div>';
+try {
+const response = await fetch('/api/urls');
+const data = await response.json();
+if (response.ok && data.urls && data.urls.length > 0) {
+container.innerHTML = '<div class="urls-grid">' +
+data.urls.map((urlObj, index) => createUrlCard(urlObj, index + 1)).join('') +
+'</div>';
+} else {
+container.innerHTML = `
+<div class="empty-state">
+<div class="empty-state-icon">🔗</div>
+<h3>No URLs saved yet</h3>
+<p>Save your first URL to get started!</p>
+</div>
+`;
+}
+} catch (error) {
+container.innerHTML = '<div class="alert alert-error">❌ Error loading URLs</div>';
+}
+}
+// function createUrlCard(urlObj, number) {
+// return `
+// <div class="url-card">
+// <div class="url-number">${number}</div>
+// <div class="file-name">${urlObj.title}</div>
+// <div class="url-link">${urlObj.url}</div>
+// <div class="file-actions">
+// <button class="btn btn-small btn-view" onclick="viewUrl('${urlObj.id}')">🌐 Go to Page</button>
+// </div>
+// </div>
+// `;
+// }
+
+
+// Helper function to escape quotes in titles
+function escapeQuotes(str) {
+    return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+}
+
+// Delete URL Modal functions
+function openDeleteUrlModal(urlId, urlTitle) {
+    document.getElementById('deleteUrlId').value = urlId;
+    document.getElementById('deleteUrlTitle').textContent = urlTitle;
+    document.getElementById('deleteUrlModal').classList.add('active');
+}
+
+function closeDeleteUrlModal() {
+    document.getElementById('deleteUrlModal').classList.remove('active');
+    document.getElementById('deleteUrlForm').reset();
+}
+
+document.getElementById('deleteUrlForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const urlId = document.getElementById('deleteUrlId').value;
+    const email = document.getElementById('deleteUrlEmail').value;
+    
+    try {
+        const response = await fetch(`/api/urls/${urlId}/delete?email=${encodeURIComponent(email)}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            showAlert('urlsAlert', '✅ ' + data.message, 'success');
+            closeDeleteUrlModal();
+            loadUrls();
+        } else {
+            showAlert('urlsAlert', '❌ ' + data.message, 'error');
+            closeDeleteUrlModal();
+        }
+    } catch (error) {
+        showAlert('urlsAlert', '❌ Error deleting URL', 'error');
+        closeDeleteUrlModal();
+    }
+});
+
+
+
+function createUrlCard(urlObj, number) {
+return `
+<div class="url-card">
+<div class="url-number">${number}</div>
+<div class="file-name">${urlObj.title}</div>
+<div class="url-link">${urlObj.url}</div>
+<div class="file-actions">
+<button class="btn btn-small btn-view" onclick="viewUrl('${urlObj.id}')">🌐 Go to Page</button>
+<button class="btn btn-small btn-delete" onclick="openDeleteUrlModal('${urlObj.id}', '${escapeQuotes(urlObj.title)}')">🗑️ Delete</button>
+</div>
+</div>
+`;
+}
+function viewUrl(id) {
+window.open(`/api/url/${id}`, '_blank');
+}
 // Close modals on background click
 document.querySelectorAll('.modal').forEach(modal => {
 modal.addEventListener('click', (e) => {
